@@ -1,4 +1,4 @@
-
+#include <Arduino.h>
 #include "Sign.h"
 #include <SPI.h>
 // Wireless tranceiver (RF24) headers
@@ -22,7 +22,9 @@ Adafruit_ADXL343 accel = Adafruit_ADXL343(12345);
 void setup() {
   // initialize serial communication at 9600 bits per second:
   Serial.begin(115200);
-  analogReference(EXTERNAL);
+
+  // Uncomment this for the left hand. analogReference doens't work on Teensy 4.1. All Teensy analog pins are referenced to 3.3v.
+  //analogReference(EXTERNAL);
 
   radio.begin();
   // set the address
@@ -45,7 +47,7 @@ void setup() {
 // the loop routine runs over and over again forever:
 void loop() {
   // Declare a variable to store the sign currently being made according to the sensors
-  Sign currentSign;
+  //Sign currentSign;
   // read the input on the right thumb
   int flexValuesR[FINGERS_PER_HAND];
   flexValuesR[0] = analogRead(R1);
