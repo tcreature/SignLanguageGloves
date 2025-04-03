@@ -51,4 +51,42 @@ struct HandState {
   }
 };
 
+struct Sign {
+  const char *name;
+  HandState rightHand;
+  HandState leftHand;
+
+  bool operator == (const Sign& rhs) const {
+  if(this->leftHand == rhs.leftHand && this->rightHand == rhs.rightHand) {
+    return true;
+  } else {
+    return false;
+  }
+}
+};
+
+FingerState flexValueToFingerState(int flexValue) {
+  // The value read from the flex sensors will be between 0 and 1023
+  const int thresholdPartial = 400;
+  const int thresholdFull = 900;
+
+  if(flexValue >= thresholdFull) {
+    return FULLY_CURLED;
+  } else if(flexValue >= thresholdPartial) {
+    return PARTIALLY_CURLED;
+  } else {
+    return EXTENDED;
+  }
+}
+
+HandOrientation accelEventToHandOrientation(sensors_event_t e) {
+  // TODO: Determine the direction the palm is facing, based on the accelerometer's x, y, and z acceleration
+}
+
+// The list of all signs our program knows about
+const constexpr Sign signs[] = {
+  {"a", {{EXTENDED, FULLY_CURLED, FULLY_CURLED, FULLY_CURLED, FULLY_CURLED}, HO_UPRIGHT}, {DONTCAREX5, HO_DONT_CARE}},
+};
+const constexpr int numSigns = sizeof(signs) / sizeof(signs[0]);
+
 #endif
