@@ -1,107 +1,140 @@
-#include <Arduino.h>
-#include "Sign.h"
-#include <SPI.h>
-// Wireless tranceiver (RF24) headers
-#include <nRF24L01.h>
-#include <RF24.h>
-// Accelerometer headers
+/*
+  Demo of the audio sweep function.
+  The user specifies the amplitude,
+  start and end frequencies (which can sweep up or down)
+  and the length of time of the sweep.
+
+  Modified to eliminate the audio shield, and use Max98357A mono I2S chip.
+  https://smile.amazon.com/gp/product/B07PS653CD/ref=ppx_yo_dt_b_asin_title_o00_s00?ie=UTF8&psc=1
+
+  Pins:        Teensy 4.0    Teensy 3.x
+
+  LRCLK:    Pin 20/A6    Pin 23/A9
+  BCLK:        Pin 21/A7    Pin 9
+  DIN:        Pin 7        Pin 22/A8
+  Gain:        see below    see below
+  Shutdown:    N/C        N/C
+  Ground:    Ground        Ground
+  VIN:        5v        5v
+
+  Other I2S pins not used by the Max98357A device:
+
+  MCLK        Pin 23        Pin 11
+  DOUT        Pin 8        Pin 13
+
+  Gain setting:
+
+  15dB    if a 100K resistor is connected between GAIN and GND
+  12dB    if GAIN is connected directly to GND
+   9dB    if GAIN is not connected to anything (this is the default)
+   6dB    if GAIN is conneted directly to Vin
+   3dB    if a 100K resistor is connected between GAIN and Vin.
+
+  SD setting (documentation from the Adafruit board)
+
+  This pin is used for shutdown mode but is also used for setting which channel
+  is output. It's a little confusing but essentially:
+
+  * If SD is connected to ground directly (voltage is under 0.16V) then the amp
+    is shut down
+
+  * If the voltage on SD is between 0.16V and 0.77V then the output is (Left +
+    Right)/2, that is the stereo average.
+
+  * If the voltage on SD is between 0.77V and 1.4V then the output is just the
+    Right channel
+
+  * If the voltage on SD is higher than 1.4V then the output is the Left
+    channel.
+
+    This is compounded by an internal 100K pulldown resistor on SD so you need
+    to use a pullup resistor on SD to balance out the 100K internal pulldown.
+
+  Or alternatively, use the HiLetgo PCM5102 I2S IIS Lossless Digital Audio DAC
+  Decoder which provides stereo output:
+  https://smile.amazon.com/gp/product/B07Q9K5MT8/ref=ppx_yo_dt_b_asin_title_o00_s00?ie=UTF8&psc=1  */
+
+#include <Audio.h>
 #include <Wire.h>
-#include <Adafruit_Sensor.h>
-#include <Adafruit_ADXL343.h>
+#include <SPI.h>
+#include <SD.h>
+#include <SerialFlash.h>
 
-// create an RF24 object 
-RF24 radio(9, 8);
-// address through which the two wireless modules communicate
-const byte address[6] = "00001";
+// GUItool: begin automatically generated code (edited by meissner afterwards).
+AudioSynthToneSweep    tonesweep;        //xy=99,198
+AudioMixer4        mixer2;            //xy=280,253
+AudioMixer4        mixer1;            //xy=280,175
+AudioOutputI2S        i2s;            //xy=452,189
 
-/* Assign a unique ID to this sensor at the same time */
-Adafruit_ADXL343 accel = Adafruit_ADXL343(12345);
+AudioConnection        patchCord1(tonesweep, 0, mixer1, 0);
+AudioConnection        patchCord2(tonesweep, 0, mixer2, 0);
+AudioConnection        patchCord3(mixer2,    0, i2s,    1);
+AudioConnection        patchCord4(mixer1,    0, i2s,    0);
+// GUItool: end automatically generated code
 
+const float    t_ampx    = 0.8;
+const int    t_lox    = 10;
+const int    t_hix    = 22000;
+const float    t_timex    = 10;        // Length of time for the sweep in seconds
 
-// the setup routine runs once when you press reset:
-void setup() {
-  // initialize serial communication at 9600 bits per second:
-  Serial.begin(115200);
+// Do a sweep in both directions, enabling or disabling the left/right speakers
+void do_sweep (int i)
+{
+  int do_left  = (i & 1) != 0;
+  int do_right = (i & 2) != 0;
+  float gain   = (do_left && do_right) ? 0.5f : 1.0f;
 
-  // Uncomment this for the left hand. analogReference doens't work on Teensy 4.1. All Teensy analog pins are referenced to 3.3v.
-  //analogReference(EXTERNAL);
+  Serial.printf ("Sweep up,   left = %c, right = %c\n",
+         (do_left)  ? 'Y' : 'N',
+         (do_right) ? 'Y' : 'N');
 
-  radio.begin();
-  // set the address
-  radio.openReadingPipe(0, address);
-  // set module as transmitter
-  radio.startListening();
+  mixer1.gain (0, do_left  ? gain : 0.0f);
+  mixer2.gain (0, do_right ? gain : 0.0f);
 
-  /* Initialise the sensor */
-  if(!accel.begin())
-  {
-  /* There was a problem detecting the ADXL343 ... check your connections */
-  Serial.println("Ooops, no ADXL343 detected ... Check your wiring!");
-  while(1);
+  if (!tonesweep.play (t_ampx, t_lox, t_hix, t_timex)) {
+    Serial.println ("ToneSweep - play failed");
+    while (1)
+      ;
   }
 
-  /* Set the range to +- 16G */
-  accel.setRange(ADXL343_RANGE_16_G);
+  // wait for the sweep to end
+  while (tonesweep.isPlaying ())
+    ;
+
+  // and now reverse the sweep
+  Serial.printf ("Sweep down, left = %c, right = %c\n",
+         (do_left)  ? 'Y' : 'N',
+         (do_right) ? 'Y' : 'N');
+
+  if (!tonesweep.play (t_ampx, t_hix, t_lox, t_timex)) {
+    Serial.println("ToneSweep - play failed");
+    while (1)
+      ;
+  }
+
+  // wait for the sweep to end
+  while (tonesweep.isPlaying ())
+    ;
+
+  Serial.println ("Sweep done");
 }
 
-// the loop routine runs over and over again forever:
-void loop() {
-  // Declare a variable to store the sign currently being made according to the sensors
-  //Sign currentSign;
-  // read the input on the right thumb
-  int flexValuesR[FINGERS_PER_HAND];
-  flexValuesR[0] = analogRead(R1);
-  flexValuesR[1] = analogRead(R2);
-  flexValuesR[2] = analogRead(R3);
-  flexValuesR[3] = analogRead(R4);
-  flexValuesR[4] = analogRead(R5);
+void setup(void)
+{
+  // Wait for at least 3 seconds for the USB serial connection
+  Serial.begin (9600);
+  while (!Serial && millis () < 3000)
+    ;
 
-  // read event from accelerometer
-  //sensors_event_t accelEventR;
-  ///accel.getEvent(&accelEventR);
+  AudioMemory (8);
+  Serial.println ("setup done");
 
-  
-  //Serial.print("Z: "); Serial.print(ACCEL_UP(accelEventR)); Serial.print("  ");Serial.println("m/s^2 ");
-  
-  //currentSign.setRightHand(flexValuesR);
-  
-  //const Sign *ptr = currentSign.findClosestKnownSign();
-  
-//  if(ptr != nullptr) {
-//    //Serial.println(ptr->getName());
-//  } else {
-//    //Serial.println("No match");
-//  }
+  for (int i = 1; i <= 3; i++)
+    do_sweep (i);
 
-  // TODO: Get left hand values from wireless module
+  Serial.println ("Done");
+}
 
-  Serial.println(flexValuesR[0]);
-  Serial.println(flexValuesR[1]);
-  Serial.println(flexValuesR[2]);
-  Serial.println(flexValuesR[3]);
-  Serial.println(flexValuesR[4]);
-  //int txtLength = strlen_P(txt);
-//  for(byte i = 0; i < txtLength; i++) {
-//    char myChar = pgm_read_byte_near(txt + i);
-//    Serial.print(myChar);
-//  }
-//  Serial.println();
-
-  //Sign workingSign;
-  //memcpy_P(&workingSign, &signs[15], sizeof(Sign));
-  //workingSign.printHandStates();
-  //Sign::signs[0].printHandStates();
-  // print out the value you read:
-  //Serial.println(currentSign.rightFingers);
-
-
-
-  //const char text[] = "Helloww World";
-//  if(radio.available()) {
-//    char text[32] = {0};
-//    radio.read(&text, sizeof(text));
-//    Serial.println(text);
-//  }
-  //radio.write(&text, sizeof(text));
-  //delay(1000);
+void loop (void)
+{
 }
