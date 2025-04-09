@@ -62,7 +62,7 @@
 
 // GUItool: begin automatically generated code (edited by meissner afterwards).
 AudioSynthToneSweep    tonesweep;        //xy=99,198
-AudioMixer4        mixer2;            //xy=280,253
+AudioMixer4        mixer2;            //xy=280,253/home/tim/Documents/School/Spring25/ECE4950/Teensy4i2s/examples/ToneSweep/ToneSweep.ino
 AudioMixer4        mixer1;            //xy=280,175
 AudioOutputI2S        i2s;            //xy=452,189
 
