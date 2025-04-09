@@ -83,10 +83,42 @@ HandOrientation accelEventToHandOrientation(sensors_event_t e) {
   // TODO: Determine the direction the palm is facing, based on the accelerometer's x, y, and z acceleration
 }
 
+void setRightHand(Sign *sign, const int flexValues[FINGERS_PER_HAND], const sensors_event_t e) {
+  for(int i = 0; i < FINGERS_PER_HAND; i++) {
+    // Convert the value read from the analog input pins to a finger state
+    sign->rightHand.fingerStates[i] = flexValueToFingerState(flexValues[i]);
+  }
+  sign->rightHand.handOrientation = accelEventToHandOrientation(e);
+}
+
+void printHandStates(Sign *sign) {
+  Serial.print("Name: ");
+  Serial.println(sign->name);
+  Serial.println("Right hand:");
+  for(int i = 0; i < FINGERS_PER_HAND; i++) {
+    Serial.println(sign->rightHand.fingerStates[i]);
+  }
+  Serial.println("Left hand:");
+  for(int i = 0; i < FINGERS_PER_HAND; i++) {
+    Serial.println(sign->leftHand.fingerStates[i]);
+  }
+  Serial.println();
+}
+
 // The list of all signs our program knows about
 const constexpr Sign signs[] = {
   {"a", {{EXTENDED, FULLY_CURLED, FULLY_CURLED, FULLY_CURLED, FULLY_CURLED}, HO_UPRIGHT}, {DONTCAREX5, HO_DONT_CARE}},
 };
 const constexpr int numSigns = sizeof(signs) / sizeof(signs[0]);
+
+const Sign *findClosestKnownSign(Sign *sign) {
+  const Sign *ptr = nullptr;
+  for(int i = 0; i < numSigns; i++) {
+    if(*sign == signs[i]) {
+      ptr = &signs[i];
+    }
+  }
+  return ptr;
+}
 
 #endif
