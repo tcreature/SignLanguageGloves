@@ -1,107 +1,77 @@
-#include <Arduino.h>
-#include "Sign.h"
+/*
+  SD card read/write
+
+  This example shows how to read and write data to and from an SD card file
+  The circuit:
+   SD card attached to SPI bus as follows:
+ ** MOSI - pin 11
+ ** MISO - pin 12
+ ** CLK - pin 13
+ ** CS - pin 4 (for MKRZero SD: SDCARD_SS_PIN)
+
+  created   Nov 2010
+  by David A. Mellis
+  modified 9 Apr 2012
+  by Tom Igoe
+
+  This example code is in the public domain.
+
+*/
+
 #include <SPI.h>
-// Wireless tranceiver (RF24) headers
-#include <nRF24L01.h>
-#include <RF24.h>
-// Accelerometer headers
-#include <Wire.h>
-#include <Adafruit_Sensor.h>
-#include <Adafruit_ADXL343.h>
+#include <SD.h>
 
-// create an RF24 object 
-RF24 radio(9, 8);
-// address through which the two wireless modules communicate
-const byte address[6] = "00001";
+File myFile;
 
-/* Assign a unique ID to this sensor at the same time */
-Adafruit_ADXL343 accel = Adafruit_ADXL343(12345);
-
-
-// the setup routine runs once when you press reset:
 void setup() {
-  // initialize serial communication at 9600 bits per second:
-  Serial.begin(115200);
-
-  // Uncomment this for the left hand. analogReference doens't work on Teensy 4.1. All Teensy analog pins are referenced to 3.3v.
-  //analogReference(EXTERNAL);
-
-  radio.begin();
-  // set the address
-  radio.openReadingPipe(0, address);
-  // set module as transmitter
-  radio.startListening();
-
-  /* Initialise the sensor */
-  if(!accel.begin())
-  {
-  /* There was a problem detecting the ADXL343 ... check your connections */
-  Serial.println("Ooops, no ADXL343 detected ... Check your wiring!");
-  while(1);
+  // Open serial communications and wait for port to open:
+  Serial.begin(9600);
+  while (!Serial) {
+    ; // wait for serial port to connect. Needed for native USB port only
   }
 
-  /* Set the range to +- 16G */
-  accel.setRange(ADXL343_RANGE_16_G);
+
+  Serial.print("Initializing SD card...");
+
+  if (!SD.begin(BUILTIN_SDCARD)) {
+    Serial.println("initialization failed!");
+    while (1);
+  }
+  Serial.println("initialization done.");
+
+  // open the file. note that only one file can be open at a time,
+  // so you have to close this one before opening another.
+  myFile = SD.open("test.txt", FILE_WRITE);
+
+  // if the file opened okay, write to it:
+  if (myFile) {
+    Serial.print("Writing to test.txt...");
+    myFile.println("testing 1, 2, 3.");
+    // close the file:
+    myFile.close();
+    Serial.println("done.");
+  } else {
+    // if the file didn't open, print an error:
+    Serial.println("error opening test.txt");
+  }
+
+  // re-open the file for reading:
+  myFile = SD.open("test.txt");
+  if (myFile) {
+    Serial.println("test.txt:");
+
+    // read from the file until there's nothing else in it:
+    while (myFile.available()) {
+      Serial.write(myFile.read());
+    }
+    // close the file:
+    myFile.close();
+  } else {
+    // if the file didn't open, print an error:
+    Serial.println("error opening test.txt");
+  }
 }
 
-// the loop routine runs over and over again forever:
 void loop() {
-  // Declare a variable to store the sign currently being made according to the sensors
-  //Sign currentSign;
-  // read the input on the right thumb
-  int flexValuesR[FINGERS_PER_HAND];
-  flexValuesR[0] = analogRead(R1);
-  flexValuesR[1] = analogRead(R2);
-  flexValuesR[2] = analogRead(R3);
-  flexValuesR[3] = analogRead(R4);
-  flexValuesR[4] = analogRead(R5);
-
-  // read event from accelerometer
-  //sensors_event_t accelEventR;
-  ///accel.getEvent(&accelEventR);
-
-  
-  //Serial.print("Z: "); Serial.print(ACCEL_UP(accelEventR)); Serial.print("  ");Serial.println("m/s^2 ");
-  
-  //currentSign.setRightHand(flexValuesR);
-  
-  //const Sign *ptr = currentSign.findClosestKnownSign();
-  
-//  if(ptr != nullptr) {
-//    //Serial.println(ptr->getName());
-//  } else {
-//    //Serial.println("No match");
-//  }
-
-  // TODO: Get left hand values from wireless module
-
-  Serial.println(flexValuesR[0]);
-  Serial.println(flexValuesR[1]);
-  Serial.println(flexValuesR[2]);
-  Serial.println(flexValuesR[3]);
-  Serial.println(flexValuesR[4]);
-  //int txtLength = strlen_P(txt);
-//  for(byte i = 0; i < txtLength; i++) {
-//    char myChar = pgm_read_byte_near(txt + i);
-//    Serial.print(myChar);
-//  }
-//  Serial.println();
-
-  //Sign workingSign;
-  //memcpy_P(&workingSign, &signs[15], sizeof(Sign));
-  //workingSign.printHandStates();
-  //Sign::signs[0].printHandStates();
-  // print out the value you read:
-  //Serial.println(currentSign.rightFingers);
-
-
-
-  //const char text[] = "Helloww World";
-//  if(radio.available()) {
-//    char text[32] = {0};
-//    radio.read(&text, sizeof(text));
-//    Serial.println(text);
-//  }
-  //radio.write(&text, sizeof(text));
-  //delay(1000);
+  // nothing happens after setup
 }
