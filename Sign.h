@@ -57,12 +57,12 @@ struct Sign {
   HandState leftHand;
 
   bool operator == (const Sign& rhs) const {
-  if(this->leftHand == rhs.leftHand && this->rightHand == rhs.rightHand) {
-    return true;
-  } else {
-    return false;
+    if(this->leftHand == rhs.leftHand && this->rightHand == rhs.rightHand) {
+      return true;
+    } else {
+      return false;
+    }
   }
-}
 };
 
 FingerState flexValueToFingerState(int flexValue) {
