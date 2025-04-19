@@ -35,9 +35,9 @@ void setup() {
   /* Initialise the sensor */
   if(!accel.begin())
   {
-  /* There was a problem detecting the ADXL343 ... check your connections */
-  Serial.println("Ooops, no ADXL343 detected ... Check your wiring!");
-  while(1);
+    /* There was a problem detecting the ADXL343 ... check your connections */
+    Serial.println("Ooops, no ADXL343 detected ... Check your wiring!");
+    while(1);
   }
 
   /* Set the range to +- 16G */
