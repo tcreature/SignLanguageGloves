@@ -1,22 +1,29 @@
 #include <Arduino.h>
+#include <Audio.h>
 #include "Sign.h"
 #include <SPI.h>
+#include <SD.h>
+#include <SerialFlash.h>
 // Wireless tranceiver (RF24) headers
 #include <nRF24L01.h>
 #include <RF24.h>
 // Accelerometer headers
 #include <Wire.h>
 #include <Adafruit_Sensor.h>
-#include <Adafruit_ADXL343.h>
+#include <Adafruit_LSM6DSOX.h>
 
 // create an RF24 object 
 RF24 radio(9, 8);
 // address through which the two wireless modules communicate
 const byte address[6] = "00001";
 
-/* Assign a unique ID to this sensor at the same time */
-Adafruit_ADXL343 accel = Adafruit_ADXL343(12345);
+Adafruit_LSM6DSOX sox;
 
+AudioOutputI2S           audioOutput;
+AudioPlaySdWav           playWav1;
+AudioConnection          patchCord1(playWav1, 0, audioOutput, 0);
+AudioConnection          patchCord2(playWav1, 1, audioOutput, 1);
+AudioControlSGTL5000     sgtl5000_1;
 
 // the setup routine runs once when you press reset:
 void setup() {
@@ -26,6 +33,16 @@ void setup() {
   // Uncomment this for the left hand. analogReference doens't work on Teensy 4.1. All Teensy analog pins are referenced to 3.3v.
   //analogReference(EXTERNAL);
 
+  AudioMemory(8);
+
+  if (!(SD.begin(BUILTIN_SDCARD))) {
+    // stop here, but print a message repetitively
+    while (1) {
+      Serial.println("Unable to access the SD card");
+      delay(500);
+    }
+  }
+
   radio.begin();
   // set the address
   radio.openReadingPipe(0, address);
@@ -33,21 +50,55 @@ void setup() {
   radio.startListening();
 
   /* Initialise the sensor */
-  if(!accel.begin())
-  {
-    /* There was a problem detecting the ADXL343 ... check your connections */
-    Serial.println("Ooops, no ADXL343 detected ... Check your wiring!");
-    while(1);
-  }
+  //if(!sox.begin_I2C(LSM6DS_I2CADDR_DEFAULT, &Wire))
+  //{
+    /* There was a problem detecting the LSM6DSOX ... check your connections */
+  //  Serial.println("Ooops, no LSM6DSOX detected ... Check your wiring!");
+    //while(1);
+  //}
 
   /* Set the range to +- 16G */
-  accel.setRange(ADXL343_RANGE_16_G);
+  //sox.setRange(ADXL343_RANGE_16_G);
+}
+
+void playFile(const char *filename)
+{
+  Serial.print("Playing file: ");
+  Serial.println(filename);
+
+  // Start playing the file.  This sketch continues to
+  // run while the file plays.
+  playWav1.play(filename);
+
+  // A brief delay for the library read WAV info
+  delay(25);
+
+  // Simply wait for the file to finish playing.
+  while (playWav1.isPlaying()) {
+    // uncomment these lines if you audio shield
+    // has the optional volume pot soldered
+    //float vol = analogRead(15);
+    //vol = vol / 1024;
+    // sgtl5000_1.volume(vol);
+  }
 }
 
 // the loop routine runs over and over again forever:
 void loop() {
+  playFile("A.WAV");
+  delay(1000);
+  playFile("B.WAV");
+  delay(1000);
+  playFile("C.WAV");
+  delay(1000);
+  playFile("D.WAV");
+  delay(1000);
+  playFile("E.WAV");
+  delay(1000);
+  playFile("F.WAV");
+  delay(1000);
   // Declare a variable to store the sign currently being made according to the sensors
-  //Sign currentSign;
+  Sign currentSign;
   // read the input on the right thumb
   int flexValuesR[FINGERS_PER_HAND];
   flexValuesR[0] = analogRead(R1);
@@ -59,27 +110,30 @@ void loop() {
   // read event from accelerometer
   //sensors_event_t accelEventR;
   ///accel.getEvent(&accelEventR);
+  //sensors_event_t accel;
+  //sensors_event_t gyro;
+  //sensors_event_t temp;
+  //sox.getEvent(&accel, &gyro, &temp);
 
-  
   //Serial.print("Z: "); Serial.print(ACCEL_UP(accelEventR)); Serial.print("  ");Serial.println("m/s^2 ");
   
-  //currentSign.setRightHand(flexValuesR);
+  setRightHand(&currentSign, flexValuesR);
   
-  //const Sign *ptr = currentSign.findClosestKnownSign();
+  const Sign *ptr = findClosestKnownSign(&currentSign);
   
-//  if(ptr != nullptr) {
-//    //Serial.println(ptr->getName());
-//  } else {
-//    //Serial.println("No match");
-//  }
+  if(ptr != nullptr) {
+    Serial.println(ptr->name);
+  } else {
+    Serial.println("No match");
+  }
 
   // TODO: Get left hand values from wireless module
 
-  Serial.println(flexValuesR[0]);
-  Serial.println(flexValuesR[1]);
-  Serial.println(flexValuesR[2]);
-  Serial.println(flexValuesR[3]);
-  Serial.println(flexValuesR[4]);
+  //Serial.println(flexValuesR[0]);
+  //Serial.println(flexValuesR[1]);
+  //Serial.println(flexValuesR[2]);
+  //Serial.println(flexValuesR[3]);
+  //Serial.println(flexValuesR[4]);
   //int txtLength = strlen_P(txt);
 //  for(byte i = 0; i < txtLength; i++) {
 //    char myChar = pgm_read_byte_near(txt + i);

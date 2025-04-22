@@ -7,7 +7,7 @@
 
 // Fingers are labeled with 1-5 with 1 as the thumb and 5 as the pinky finger.
 // Here we assign each finger on the right hand to an analog input pin
-const int R1 = A0, R2 = A1, R3 = A2, R4 = A6, R5 = A7;
+const int R1 = A0, R2 = A1, R3 = A13, R4 = A6, R5 = A12;
 const int FINGERS_PER_HAND = 5;
 #define DONTCAREX5 {DONT_CARE, DONT_CARE, DONT_CARE, DONT_CARE, DONT_CARE}
 
@@ -21,7 +21,7 @@ const int FINGERS_PER_HAND = 5;
    actually determine about how the hand is oriented.*/
 enum HandOrientation : byte {
   HO_UPRIGHT, // such as A, B, C, O, X, etc...
-  HO_ON_SIDE, // such as G, H
+  HO_ON_SIDE, // such as G, H 
   HO_PALM_DOWN, // such as P
   HO_UPSIDE_DOWN, // such as Q
   HO_DONT_CARE
@@ -83,12 +83,13 @@ HandOrientation accelEventToHandOrientation(sensors_event_t e) {
   // TODO: Determine the direction the palm is facing, based on the accelerometer's x, y, and z acceleration
 }
 
-void setRightHand(Sign *sign, const int flexValues[FINGERS_PER_HAND], const sensors_event_t e) {
+void setRightHand(Sign *sign, const int flexValues[FINGERS_PER_HAND]) {
   for(int i = 0; i < FINGERS_PER_HAND; i++) {
     // Convert the value read from the analog input pins to a finger state
     sign->rightHand.fingerStates[i] = flexValueToFingerState(flexValues[i]);
   }
-  sign->rightHand.handOrientation = accelEventToHandOrientation(e);
+  //sign->rightHand.handOrientation = accelEventToHandOrientation(e);
+  sign->rightHand.handOrientation = HO_UPRIGHT;
 }
 
 void printHandStates(Sign *sign) {
@@ -107,7 +108,32 @@ void printHandStates(Sign *sign) {
 
 // The list of all signs our program knows about
 const constexpr Sign signs[] = {
-  {"a", {{EXTENDED, FULLY_CURLED, FULLY_CURLED, FULLY_CURLED, FULLY_CURLED}, HO_UPRIGHT}, {DONTCAREX5, HO_DONT_CARE}},
+{"a", {{EXTENDED, FULLY_CURLED, FULLY_CURLED, FULLY_CURLED, FULLY_CURLED}, HO_UPRIGHT}, {DONTCAREX5, HO_DONT_CARE}},
+{"b", {{FULLY_CURLED, EXTENDED, EXTENDED, EXTENDED, EXTENDED}, HO_UPRIGHT}, {DONTCAREX5, HO_DONT_CARE}},
+{"c", {{PARTIALLY_CURLED, PARTIALLY_CURLED, PARTIALLY_CURLED, PARTIALLY_CURLED, PARTIALLY_CURLED}, HO_UPRIGHT}, {DONTCAREX5, HO_DONT_CARE}},
+{"d", {{FULLY_CURLED, EXTENDED, FULLY_CURLED, FULLY_CURLED, FULLY_CURLED}, HO_UPRIGHT}, {DONTCAREX5, HO_DONT_CARE}},
+{"e", {{FULLY_CURLED, FULLY_CURLED, FULLY_CURLED, FULLY_CURLED, FULLY_CURLED}, HO_UPRIGHT}, {DONTCAREX5, HO_DONT_CARE}},
+{"f", {{FULLY_CURLED, FULLY_CURLED, EXTENDED, EXTENDED, EXTENDED}, HO_UPRIGHT}, {DONTCAREX5, HO_DONT_CARE}},
+{"g", {{PARTIALLY_CURLED, EXTENDED, FULLY_CURLED, FULLY_CURLED, FULLY_CURLED}, HO_ON_SIDE}, {DONTCAREX5, HO_DONT_CARE}},
+{"h", {{PARTIALLY_CURLED, EXTENDED, EXTENDED, FULLY_CURLED, FULLY_CURLED}, HO_ON_SIDE}, {DONTCAREX5, HO_DONT_CARE}},
+{"i", {{PARTIALLY_CURLED, FULLY_CURLED, FULLY_CURLED, FULLY_CURLED, EXTENDED}, HO_UPRIGHT}, {DONTCAREX5, HO_DONT_CARE}},
+// TODO: Add J
+{"k", {{EXTENDED, EXTENDED, EXTENDED, FULLY_CURLED, FULLY_CURLED}, HO_UPRIGHT}, {DONTCAREX5, HO_DONT_CARE}},
+{"l", {{EXTENDED, EXTENDED, FULLY_CURLED, FULLY_CURLED, FULLY_CURLED}, HO_UPRIGHT}, {DONTCAREX5, HO_DONT_CARE}},
+// TODO: Add M
+// TODO: Add N
+{"o", {{FULLY_CURLED, PARTIALLY_CURLED, PARTIALLY_CURLED, PARTIALLY_CURLED, PARTIALLY_CURLED}, HO_UPRIGHT}, {DONTCAREX5, HO_DONT_CARE}},
+{"p", {{EXTENDED, EXTENDED, PARTIALLY_CURLED, PARTIALLY_CURLED, PARTIALLY_CURLED}, HO_PALM_DOWN}, {DONTCAREX5, HO_DONT_CARE}},
+{"q", {{EXTENDED, EXTENDED, FULLY_CURLED, FULLY_CURLED, FULLY_CURLED}, HO_PALM_DOWN}, {DONTCAREX5, HO_DONT_CARE}},
+{"r", {{PARTIALLY_CURLED, EXTENDED, EXTENDED, FULLY_CURLED, FULLY_CURLED}, HO_UPRIGHT}, {DONTCAREX5, HO_DONT_CARE}},
+{"s", {{PARTIALLY_CURLED, FULLY_CURLED, FULLY_CURLED, FULLY_CURLED, FULLY_CURLED}, HO_UPRIGHT}, {DONTCAREX5, HO_DONT_CARE}},
+{"t", {{EXTENDED, PARTIALLY_CURLED, FULLY_CURLED, FULLY_CURLED, FULLY_CURLED}, HO_UPRIGHT}, {DONTCAREX5, HO_DONT_CARE}},
+{"u", {{PARTIALLY_CURLED, EXTENDED, EXTENDED, FULLY_CURLED, FULLY_CURLED}, HO_UPRIGHT}, {DONTCAREX5, HO_DONT_CARE}},
+{"w", {{PARTIALLY_CURLED, EXTENDED, EXTENDED, EXTENDED, FULLY_CURLED}, HO_UPRIGHT}, {DONTCAREX5, HO_DONT_CARE}},
+{"x", {{FULLY_CURLED, PARTIALLY_CURLED, FULLY_CURLED, FULLY_CURLED, FULLY_CURLED}, HO_UPRIGHT}, {DONTCAREX5, HO_DONT_CARE}},
+{"y", {{EXTENDED, FULLY_CURLED, FULLY_CURLED, FULLY_CURLED, EXTENDED}, HO_UPRIGHT}, {DONTCAREX5, HO_DONT_CARE}}
+// TODO: Add z
+
 };
 const constexpr int numSigns = sizeof(signs) / sizeof(signs[0]);
 
